@@ -48,7 +48,7 @@ jobs:
           name: mylogo-${{ env.DATE }}
           path: ${{ env.ARTIFACT }}/*
 
-create_release:
+  create_release:
     name: Create Release
     needs: [prepare, build_logo]
     runs-on: ubuntu-latest
