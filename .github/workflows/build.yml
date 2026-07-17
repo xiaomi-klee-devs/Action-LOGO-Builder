@@ -43,7 +43,7 @@ jobs:
       - name: Repack logo.bin
         run: |
           ./mtklogo repack -o "mylogo-${DATE}.bin" mylogo/logo_*
-          mkdir -p "$ARTIFACT" && cp mylogo.bin "$ARTIFACT"
+          mkdir -p "$ARTIFACT" && cp "mylogo-${DATE}.bin" "$ARTIFACT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
