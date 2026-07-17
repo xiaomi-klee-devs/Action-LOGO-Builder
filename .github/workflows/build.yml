@@ -31,6 +31,9 @@ jobs:
       - name: Download logo.bin
         run: curl -L https://raw.githubusercontent.com/xiaomi-klee-devs/android_vendor_xiaomi_klee/refs/heads/lineage-23.2-fenrir/radio/logo.img -o logo.bin
 
+      - name: Create mylogo directory
+        run: mkdir -p mylogo
+
       - name: Unpack logo.bin
         run: ./mtklogo unpack logo.bin -o mylogo --profile klee
 
