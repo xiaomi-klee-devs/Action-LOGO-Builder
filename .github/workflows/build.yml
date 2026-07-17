@@ -1,0 +1,86 @@
+name: Build Logo and Release
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      date: ${{ steps.setdate.outputs.date }}
+    steps:
+      - name: Generate build date
+        id: setdate
+        run: echo "date=$(TZ=Asia/Jakarta date +%Y%m%d%H%M)" >> "$GITHUB_OUTPUT"
+
+  build_logo:
+    name: Build Logo
+    runs-on: ubuntu-latest
+    needs: prepare
+    env:
+      DATE: ${{ needs.prepare.outputs.date }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set environment
+        run: echo "ARTIFACT=$GITHUB_WORKSPACE/artifact" >> "$GITHUB_ENV"
+
+      - name: Download logo.bin
+        run: curl -L https://raw.githubusercontent.com/xiaomi-klee-devs/android_vendor_xiaomi_klee/refs/heads/lineage-23.2-fenrir/radio/logo.img -o logo.bin
+
+      - name: Unpack logo.bin
+        run: ./mtklogo unpack logo.bin -o mylogo --profile klee
+
+      - name: Copy replace into mylogo
+        run: cp replace/* mylogo/
+
+      - name: Repack logo.bin
+        run: |
+          ./mtklogo repack -o "mylogo-${DATE}.bin" mylogo/logo_*
+          mkdir -p "$ARTIFACT" && cp mylogo.bin "$ARTIFACT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mylogo-${{ env.DATE }}
+          path: ${{ env.ARTIFACT }}/*
+
+create_release:
+    name: Create Release
+    needs: [prepare, build_logo]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.prepare.outputs.date }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup git authentication
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/xiaomi-klee-devs/Action-LOGO-Builder.git"
+
+      - name: Create git tag
+        run: |
+          git tag -a "$TAG" -m "Beyond what's right, i want to live with you, raa."
+          git push origin "$TAG"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifact
+
+      - name: Upload artifacts to release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG }}
+          files: artifact/**
