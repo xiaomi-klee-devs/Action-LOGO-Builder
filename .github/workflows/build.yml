@@ -28,6 +28,12 @@ jobs:
       - name: Set environment
         run: echo "ARTIFACT=$GITHUB_WORKSPACE/artifact" >> "$GITHUB_ENV"
 
+      - name: Download python
+        run: sudo apt install python3
+
+      - name: Download liblk
+        run: pip3 install --upgrade git+https://github.com/R0rt1z2/liblk
+
       - name: Download logo.bin
         run: curl -L https://raw.githubusercontent.com/xiaomi-klee-devs/android_vendor_xiaomi_klee/refs/heads/lineage-23.2-fenrir/radio/logo.img -o logo.bin
 
@@ -41,14 +47,17 @@ jobs:
         run: cp replace/* mylogo/
 
       - name: Repack logo.bin
+        run: ./mtklogo repack -o "mylogo-${DATE}.bin" mylogo/logo_*
+
+      - name: Sign logo.bin
         run: |
-          ./mtklogo repack -o "mylogo-${DATE}.bin" mylogo/logo_*
-          mkdir -p "$ARTIFACT" && cp "mylogo-${DATE}.bin" "$ARTIFACT"
+          python3 sign_logo.py "mylogo-${DATE}.bin" --donor "logo.bin" -o "mylogo-signed-${DATE}.bin"
+          mkdir -p "$ARTIFACT" && cp "mylogo-signed-${DATE}.bin" "$ARTIFACT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mylogo-${{ env.DATE }}
+          name: mylogo-signed-${{ env.DATE }}
           path: ${{ env.ARTIFACT }}/*
 
   create_release:
